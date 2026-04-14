@@ -1,0 +1,321 @@
+\documentclass{colm2026}
+% For blind review: \documentclass[review]{colm2026}
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\title{Do VLMs Actually Look? \\
+Grounding Faithfulness Across Reasoning Steps in Vision-Language Models}
+
+\author{Anonymous}
+
+\begin{document}
+\maketitle
+
+% ── Abstract ──────────────────────────────────────────────────────────────────
+\begin{abstract}
+[TODO: 150--200 words.
+State the problem: VLMs may generate chain-of-thought reasoning that drifts from
+visual evidence as step depth increases.
+State the method: we introduce the Grounding Faithfulness Score (GFS), a step-wise
+metric computed from vision-encoder attribution maps (Grad-CAM, attention rollout,
+patch occlusion) and validated by image-swap sensitivity.
+State key results: GFS decays significantly with step index across all three models
+(mean slope = [X], $p < 0.05$); swap sensitivity confirms that [N]\% of steps
+beyond step 3 are visually ungrounded.
+State implication: multimodal CoT elicits surface reasoning chains, not
+visually-grounded propositional inference.]
+\end{abstract}
+
+% ── 1. Introduction ───────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+
+[TODO: Motivate the question. VLMs prompted for CoT produce multi-step reasoning,
+but it is unclear whether later steps are grounded in the image or are purely
+language-driven confabulation.
+
+Key gap: existing hallucination benchmarks (POPE, CHAIR) measure final-answer
+accuracy, not step-level grounding fidelity.
+
+Contributions bullet list:
+\begin{itemize}
+  \item We introduce \textbf{GFS}, a step-wise grounding faithfulness metric
+        derived from vision-encoder attribution maps.
+  \item We construct a 200-triplet swap-pair benchmark from ScienceQA and GQA
+        that validates GFS via controlled image substitution.
+  \item We run GFS experiments on three 7--8B VLMs (LLaVA-1.5, InternVL2, Idefics2)
+        and show a significant decay pattern with step depth.
+  \item We release code, benchmark, and results at [URL].
+\end{itemize}]
+
+% ── 2. Related Work ───────────────────────────────────────────────────────────
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{VLM hallucination.}
+[TODO: Cite POPE \citep{li2023pope}, object hallucination \citep{rohrbach2018hallucination},
+Favero et al. \citep{favero2024multimodal}. Distinguish: prior work measures
+output-level hallucination; we measure step-level attribution faithfulness.]
+
+\paragraph{Multimodal chain-of-thought.}
+[TODO: Cite Wei et al. \citep{wei2022chain}, Zhang et al. \citep{zhang2023multimodal_cot},
+LLaVA-CoT \citep{bai2024llava_cot}. Gap: none measure whether steps are
+visually grounded step-by-step.]
+
+\paragraph{Attention and gradient attribution in transformers.}
+[TODO: Cite Grad-CAM \citep{selvaraju2017gradcam}, rollout \citep{abnar2020rollout},
+Parcalabescu \citep{parcalabescu2023measuring}. Our work applies these to
+multi-step VLM inference.]
+
+\paragraph{Faithfulness of explanations.}
+[TODO: Cite Turpin et al. \citep{agrawal2024faithfulness}.
+Position: their work is NLP-only; we extend to vision encoders.]
+
+% ── 3. Method ─────────────────────────────────────────────────────────────────
+\section{Method}
+\label{sec:method}
+
+\subsection{Task Formulation}
+\label{sec:formulation}
+
+[TODO: Define formally. Input: image $I$, question $Q$.
+VLM generates CoT: $C = (s_1, s_2, \ldots, s_K, a)$ where $s_k$ is step $k$
+and $a$ is the final answer.
+Goal: measure visual grounding of each step $s_k$.]
+
+\subsection{Grounding Faithfulness Score (GFS)}
+\label{sec:gfs}
+
+For each step $s_k$, we compute an attribution heatmap $H_k \in \mathbb{R}^{W \times W}$
+from the vision encoder and define:
+\begin{equation}
+  \text{GFS}_k = 1 - \frac{-\sum_{i,j} p_{ij} \log p_{ij}}{\log(W^2)}
+  \label{eq:gfs}
+\end{equation}
+where $p_{ij} = H_k[i,j] / \sum_{i',j'} H_k[i',j']$.
+High GFS indicates concentrated, spatially specific attention.
+Low GFS indicates diffuse attention, consistent with language-driven generation.
+
+Steps without explicit visual references (detected via noun-phrase analysis) are
+excluded from GFS computation and marked as \texttt{None}.
+
+\subsection{Attribution Methods}
+\label{sec:attribution}
+
+We compute $H_k$ using three independent methods:
+
+\paragraph{Grad-CAM.} [TODO: Describe implementation: hook last vision encoder layer,
+backpropagate from final-token logit sum, weight activations by gradients.]
+
+\paragraph{Attention Rollout.} [TODO: Cite \citep{abnar2020rollout}. Describe:
+chain attention matrices across all LM layers with residual addition.]
+
+\paragraph{Patch Occlusion.} [TODO: Describe: $24 \times 24$ patches, stride 12,
+score = baseline logit $-$ occluded logit.]
+
+\subsection{Swap-Pair Benchmark}
+\label{sec:benchmark}
+
+[TODO: Describe triplet construction. Same subject, different answer, pixel
+MSE $>$ $(0.25)^2$ on $224 \times 224$ resize. 200 triplets from ScienceQA
+(70\%) and GQA (30\%). Define swap sensitivity score.]
+
+\begin{table}[t]
+\centering
+\caption{Benchmark composition.}
+\label{tab:benchmark}
+\begin{tabular}{lcc}
+\toprule
+Source & Triplets & Subjects \\
+\midrule
+ScienceQA & [TODO] & [TODO] \\
+GQA & [TODO] & [TODO] \\
+\midrule
+Total & 200 & [TODO] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── 4. Experimental Setup ─────────────────────────────────────────────────────
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Models}
+[TODO: LLaVA-1.5-7B \citep{liu2024llava}, InternVL2-8B \citep{chen2024internvl2},
+Idefics2-8B \citep{laurenccon2024idefics2}. All loaded in 4-bit NF4 quantization
+on a single A100 40GB GPU. Greedy decoding, \texttt{max\_new\_tokens=512}.]
+
+\subsection{CoT Prompting}
+[TODO: Template from Section~\ref{sec:formulation}. Force ``Step 1:'' prefix.
+Parse steps with regex + fallback on double-newline split.]
+
+\subsection{Evaluation Metrics}
+[TODO: (1) Mean GFS per step, (2) decay slope (linear fit over steps), (3) swap
+sensitivity score, (4) final-answer accuracy vs ground truth.]
+
+% ── 5. Results ────────────────────────────────────────────────────────────────
+\section{Results}
+\label{sec:results}
+
+\subsection{GFS Decays With Step Depth (RQ1)}
+
+[TODO: Report decay slope, CI, t-test results. Reference Figure~\ref{fig:gfs_decay}.]
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\linewidth]{../results/figures/fig1_gfs_decay.pdf}
+\caption{Mean GFS per reasoning step across three models (shaded = $\pm$1 SE).
+GFS decays significantly with step depth, indicating reduced visual grounding
+in later reasoning steps.}
+\label{fig:gfs_decay}
+\end{figure}
+
+\subsection{Swap Sensitivity Confirms Ungrounded Steps (RQ2)}
+
+[TODO: Report swap sensitivity scores. Reference Figure~\ref{fig:swap}.]
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\linewidth]{../results/figures/fig2_swap_sensitivity.pdf}
+\caption{GFS vs swap sensitivity score per sample. High swap sensitivity =
+model actively used the image. Low sensitivity = model ignored the image
+after early steps.}
+\label{fig:swap}
+\end{figure}
+
+\subsection{Main Results Table}
+
+\begin{table*}[t]
+\centering
+\caption{Main results: GFS, decay slope, swap sensitivity, and accuracy.
+* = $p < 0.05$ on one-sample t-test of per-sample decay slopes against 0.}
+\label{tab:main}
+\begin{tabular}{lccccc}
+\toprule
+Model & Mean GFS (95\% CI) & Decay slope & Swap sens. & Accuracy & $p$ \\
+\midrule
+LLaVA-1.5-7B   & [TODO] & [TODO] & [TODO] & [TODO] & [TODO] \\
+InternVL2-8B   & [TODO] & [TODO] & [TODO] & [TODO] & [TODO] \\
+Idefics2-8B    & [TODO] & [TODO] & [TODO] & [TODO] & [TODO] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Heatmap Qualitative Analysis}
+
+[TODO: Reference Figure~\ref{fig:heatmaps}. Describe pattern: step 1 heatmaps
+concentrate on task-relevant regions; step 4+ heatmaps are diffuse.]
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{../results/figures/fig3_heatmap_grid.pdf}
+\caption{Attribution heatmaps per reasoning step for two representative samples
+(rows). GFS values annotated per step. Visual grounding degrades with step depth.}
+\label{fig:heatmaps}
+\end{figure*}
+
+% ── 6. Analysis ───────────────────────────────────────────────────────────────
+\section{Analysis}
+\label{sec:analysis}
+
+\subsection{Ablation A1: CoT vs Direct-Answer Prompting}
+
+[TODO: Report mean GFS for CoT vs direct. Does forcing CoT help or hurt grounding?
+Reference Figure~\ref{fig:cot_vs_direct}.]
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\linewidth]{../results/figures/fig4_cot_vs_direct.pdf}
+\caption{GFS distribution for CoT vs direct-answer prompting (LLaVA-1.5-7B).}
+\label{fig:cot_vs_direct}
+\end{figure}
+
+\subsection{Ablation A2: Attribution Method Comparison}
+
+[TODO: Spearman correlation between GFS from Grad-CAM vs Rollout vs Occlusion.
+Do methods agree? Robustness check.]
+
+\begin{table}[t]
+\centering
+\caption{Spearman $\rho$ between attribution methods on mean GFS (N=30 samples).}
+\label{tab:methods}
+\begin{tabular}{lcc}
+\toprule
+ & Rollout & Occlusion \\
+\midrule
+Grad-CAM & [TODO] & [TODO] \\
+Rollout  & —      & [TODO] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Ablation A3: GFS by Question Category}
+
+[TODO: Table or figure showing GFS by ScienceQA subject (biology, physics, chemistry).
+Does category moderate the decay?]
+
+% ── 7. Discussion ─────────────────────────────────────────────────────────────
+\section{Discussion}
+\label{sec:discussion}
+
+[TODO: Interpret findings.
+Why does grounding decay? Hypotheses: (1) LM component dominates after step 1--2
+due to autoregressive inertia; (2) image tokens are down-weighted in later layers;
+(3) CoT prompting encourages language-pattern completion, not visual inspection.
+
+Implications: VLM CoT is not a reliable proxy for visual reasoning.
+Design recommendation: re-attend to image at each step (e.g. image token refresh).
+
+Connect to faithfulness literature: parallels Turpin et al. unfaithful NLP CoT,
+but in multimodal setting.]
+
+% ── 8. Conclusion ─────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+[TODO: Summarize. GFS decay is consistent, significant, model-agnostic.
+Swap sensitivity confirms later steps are not image-conditioned.
+Future work: (1) mechanistic analysis of image-token attention in late layers;
+(2) training intervention to enforce per-step grounding; (3) extension to video VLMs.]
+
+% ── Limitations ───────────────────────────────────────────────────────────────
+\section{Limitations}
+\label{sec:limitations}
+
+[TODO:
+\begin{itemize}
+  \item GFS is a proxy metric (entropy of attribution) not a direct measure
+        of semantic alignment between step text and image region.
+  \item Attribution methods may be unreliable on 4-bit quantized models.
+  \item 200 samples is a modest scale; effect sizes may shift with larger benchmarks.
+  \item We study three English-only VLMs; generalization to multilingual or
+        domain-specific VLMs is unknown.
+\end{itemize}]
+
+% ── Ethics ────────────────────────────────────────────────────────────────────
+\section{Ethics Statement}
+\label{sec:ethics}
+
+[TODO: All datasets (ScienceQA, GQA) are publicly available under standard
+research licenses. No personal data. No crowdsourcing. Results reveal a
+limitation of VLMs that could inform responsible deployment in high-stakes
+visual reasoning tasks (medical, scientific). Code will be released under MIT license.]
+
+% ── References ────────────────────────────────────────────────────────────────
+\bibliographystyle{colm2026_natbib}
+\bibliography{references}
+
+\end{document}

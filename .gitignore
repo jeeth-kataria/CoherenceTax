@@ -1,0 +1,32 @@
+# Python cache and virtual envs
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Local/editor/system
+.DS_Store
+.claude/settings.local.json
+
+# Data and experiment artifacts (reproducible/generated)
+data/scienceqa/
+data/gqa/
+data/swap_pairs/
+results/full/
+results/pilot/
+results/checkpoints/
+*.log
+
+# Large temp exports
+*.parquet
+*.feather
+*.npy
+*.npz

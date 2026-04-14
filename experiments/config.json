@@ -1,0 +1,106 @@
+{
+  "models": {
+    "llava": {
+      "model_id": "llava-hf/llava-1.5-7b-hf",
+      "model_class": "LlavaForConditionalGeneration",
+      "processor_class": "AutoProcessor",
+      "image_token": "<image>",
+      "image_token_id": -200,
+      "n_image_patches": 576,
+      "vision_encoder_layer": "vision_tower.vision_model.encoder.layers.23",
+      "trust_remote_code": false
+    },
+    "internvl": {
+      "model_id": "OpenGVLab/InternVL2-8B",
+      "model_class": "AutoModelForVision2Seq",
+      "processor_class": "AutoProcessor",
+      "image_token": "<image>",
+      "image_token_id": null,
+      "n_image_patches": 256,
+      "vision_encoder_layer": "vision_model.encoder.layers.23",
+      "trust_remote_code": true
+    },
+    "idefics2": {
+      "model_id": "HuggingFaceM4/idefics2-8b",
+      "model_class": "AutoModelForVision2Seq",
+      "processor_class": "AutoProcessor",
+      "image_token": "<image>",
+      "image_token_id": null,
+      "n_image_patches": 64,
+      "vision_encoder_layer": "model.vision_model.encoder.layers.23",
+      "trust_remote_code": false
+    }
+  },
+  "quantization": {
+    "load_in_4bit": true,
+    "bnb_4bit_compute_dtype": "float16",
+    "bnb_4bit_quant_type": "nf4",
+    "bnb_4bit_use_double_quant": true
+  },
+  "generation": {
+    "max_new_tokens": 512,
+    "do_sample": false,
+    "temperature": 1.0,
+    "num_beams": 1
+  },
+  "datasets": {
+    "scienceqa": {
+      "hf_path": "derek-thomas/ScienceQA",
+      "split": "train",
+      "image_field": "image",
+      "question_field": "question",
+      "answer_field": "answer",
+      "subject_field": "subject",
+      "has_image_filter": true
+    },
+    "gqa": {
+      "hf_path": "lmms-lab/GQA",
+      "config": "testdev_balanced",
+      "split": "testdev",
+      "image_field": "image",
+      "question_field": "question",
+      "answer_field": "answer",
+      "subject_field": null,
+      "has_image_filter": true
+    }
+  },
+  "benchmark": {
+    "n_triplets": 200,
+    "min_pixel_diff": 0.25,
+    "fallback_min_pixel_diff": 0.15,
+    "image_resize": [224, 224],
+    "random_seed": 42,
+    "scienceqa_fraction": 0.7,
+    "gqa_fraction": 0.3
+  },
+  "attribution": {
+    "methods": ["gradcam", "rollout", "occlusion"],
+    "image_size": 336,
+    "gfs_threshold_pct": 0.2,
+    "occlusion_patch_size": 24,
+    "occlusion_stride": 12
+  },
+  "gfs": {
+    "max_steps": 6,
+    "min_steps_for_slope": 3
+  },
+  "stats": {
+    "n_bootstrap": 10000,
+    "ci_level": 0.95,
+    "alpha": 0.05,
+    "seed": 42
+  },
+  "checkpointing": {
+    "save_every_n": 10,
+    "checkpoint_dir": "results/checkpoints"
+  },
+  "paths": {
+    "scienceqa_cache": "data/scienceqa",
+    "gqa_cache": "data/gqa",
+    "swap_pairs": "data/swap_pairs/benchmark_metadata.json",
+    "results_pilot": "results/pilot",
+    "results_full": "results/full",
+    "results_ablations": "results/ablations",
+    "figures": "results/figures"
+  }
+}
